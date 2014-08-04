@@ -228,6 +228,20 @@ static ssize_t select_padding_callback(nghttp2_session *session,
   return nghttp2_min(max_payloadlen, frame->hd.length + ud->padlen);
 }
 
+static size_t too_large_data_source_length_callback
+(nghttp2_session *session, int32_t stream_id,
+ int32_t session_remote_window_size, int32_t stream_remote_window_size,
+ uint32_t remote_max_frame_size, void *user_data) {
+    return NGHTTP2_MAX_FRAME_SIZE_MAX + 1;
+}
+
+static size_t too_small_data_source_length_callback
+(nghttp2_session *session, int32_t stream_id,
+ int32_t session_remote_window_size, int32_t stream_remote_window_size,
+ uint32_t remote_max_frame_size, void *user_data) {
+    return -1;
+}
+
 static ssize_t fixed_length_data_source_read_callback
 (nghttp2_session *session, int32_t stream_id,
  uint8_t *buf, size_t len, uint32_t *data_flags,
@@ -2978,6 +2992,7 @@ void test_nghttp2_submit_data(void)
 
   memset(&callbacks, 0, sizeof(nghttp2_session_callbacks));
   callbacks.send_callback = block_count_send_callback;
+  callbacks.read_length_callback = too_large_data_source_length_callback;
 
   data_prd.read_callback = fixed_length_data_source_read_callback;
   ud.data_source_length = NGHTTP2_DATA_PAYLOADLEN * 2;
@@ -4295,6 +4310,7 @@ void test_nghttp2_session_defer_data(void)
   CU_ASSERT(ud.data_source_length == NGHTTP2_DATA_PAYLOADLEN * 2);
 
   /* Deferred again */
+  callbacks.read_length_callback = too_small_data_source_length_callback;
   OB_DATA(item)->data_prd.read_callback = defer_data_source_read_callback;
   /* This is needed since 4KiB block is already read and waiting to be
      sent. No read_callback invocation. */
@@ -4303,7 +4319,7 @@ void test_nghttp2_session_defer_data(void)
   CU_ASSERT(ud.data_source_length == NGHTTP2_DATA_PAYLOADLEN * 2);
 
   /* Resume deferred DATA */
-
+  callbacks.read_length_callback = 0;
   CU_ASSERT(0 == nghttp2_session_resume_data(session, 1));
   item = nghttp2_session_get_ob_pq_top(session);
   OB_DATA(item)->data_prd.read_callback =

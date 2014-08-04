@@ -645,6 +645,24 @@ typedef enum {
 /**
  * @functypedef
  *
+ * Callback function invoked when |session| wants to get max |length|
+ * of data to send data to the remote peer.  The implementation of this
+ * function must return a value in the following range:
+ * [0, min(session window, stream window, settings remote max frame size)].
+ * A return value of 0 will be equivalent to `nghttp2_data_source_read_callback`'s
+ * return value of :enum:`NGHTTP2_ERR_DEFERRED`.
+ *
+ * This callback can be used to control the |length| in bytes
+ * for which `nghttp2_data_source_read_callback()` is allowed to send to the
+ * remote endpoint.  This callback is optional.
+ */
+typedef size_t (*nghttp2_data_source_read_length_callback)
+(nghttp2_session *session, int32_t stream_id, int32_t session_remote_window_size,
+ int32_t stream_remote_window_size, uint32_t remote_max_frame_size, void *user_data);
+
+/**
+ * @functypedef
+ *
  * Callback function invoked when the library wants to read data from
  * the |source|.  The read data is sent in the stream |stream_id|.
  * The implementation of this function must read at most |length|
@@ -1475,6 +1493,11 @@ typedef struct {
    * frame.
    */
   nghttp2_select_padding_callback select_padding_callback;
+  /**
+   * The callback function used to determine the |length| allowed
+   * in `nghttp2_data_source_read_callback()`
+   */
+  nghttp2_data_source_read_length_callback read_length_callback;
 } nghttp2_session_callbacks;
 
 struct nghttp2_option;
@@ -1984,7 +2007,6 @@ int32_t nghttp2_session_get_effective_local_window_size
  */
 int32_t nghttp2_session_get_stream_remote_window_size(nghttp2_session* session,
                                                       int32_t stream_id);
-
 
 /**
  * @function
