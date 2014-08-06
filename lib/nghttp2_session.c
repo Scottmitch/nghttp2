@@ -1335,7 +1335,7 @@ static int nghttp2_session_predicate_settings_send(nghttp2_session *session,
  * settings for max frame size is also taken into account.
  */
 static size_t nghttp2_session_next_data_read(nghttp2_session *session,
-                                             nghttp2_stream *stream)
+                                              nghttp2_stream *stream)
 {
   size_t window_size;
 
@@ -1359,8 +1359,8 @@ static size_t nghttp2_session_next_data_read(nghttp2_session *session,
 
   /* Take into account both connection-level flow control here */
   window_size = nghttp2_min(window_size, session->remote_settings.max_frame_size);
-  window_size = nghttp2_min(window_size, session->remote_window_size);
-  window_size = nghttp2_min(window_size, stream->remote_window_size);
+  window_size = nghttp2_min(window_size, (size_t) nghttp2_max(0, session->remote_window_size));
+  window_size = nghttp2_min(window_size, (size_t) nghttp2_max(0, stream->remote_window_size));
 
   DEBUGF(fprintf(stderr, "send: available window=%d\n", window_size));
 
