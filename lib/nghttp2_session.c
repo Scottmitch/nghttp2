@@ -1351,6 +1351,7 @@ static size_t nghttp2_session_next_data_read(nghttp2_session *session,
       window_size = session->callbacks.read_length_callback(session, stream->stream_id,
                       session->remote_window_size, stream->remote_window_size,
                       session->remote_settings.max_frame_size, session->user_data);
+      /* size_t should be unsigned, but just in-case this is a weird platform */
       window_size = nghttp2_max(window_size, 0);
   } else {
       window_size = NGHTTP2_DATA_PAYLOADLEN;
