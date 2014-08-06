@@ -4407,7 +4407,7 @@ void test_nghttp2_session_defer_data_with_read_length(void)
   CU_ASSERT(0 == nghttp2_session_send(session));
   CU_ASSERT(NGHTTP2_PING == ud.sent_frame_type);
 
-  /* Resume deferred DATA */
+  /* Resume deferred DATA - null callback */
   callbacks.read_length_callback = 0;
   CU_ASSERT(0 == nghttp2_session_resume_data(session, 1));
   item = nghttp2_session_get_ob_pq_top(session);
@@ -4424,7 +4424,7 @@ void test_nghttp2_session_defer_data_with_read_length(void)
   CU_ASSERT(0 == nghttp2_session_send(session));
   CU_ASSERT(ud.data_source_length == NGHTTP2_DATA_PAYLOADLEN * 2);
 
-  /* Resume deferred DATA */
+  /* Resume deferred DATA - null callback */
   callbacks.read_length_callback = 0;
   CU_ASSERT(0 == nghttp2_session_resume_data(session, 1));
   item = nghttp2_session_get_ob_pq_top(session);
