@@ -142,6 +142,8 @@ int main(int argc, char* argv[])
       !CU_add_test(pSuite, "session_reprioritize_stream",
                    test_nghttp2_session_reprioritize_stream) ||
       !CU_add_test(pSuite, "submit_data", test_nghttp2_submit_data) ||
+      !CU_add_test(pSuite, "submit_data_read_length_too_large",
+                   test_nghttp2_submit_data_read_length_too_large) ||
       !CU_add_test(pSuite, "submit_request_with_data",
                    test_nghttp2_submit_request_with_data) ||
       !CU_add_test(pSuite, "submit_request_without_data",
@@ -189,8 +191,10 @@ int main(int argc, char* argv[])
                    test_nghttp2_session_stop_data_with_rst_stream) ||
       !CU_add_test(pSuite, "session_defer_data",
                    test_nghttp2_session_defer_data) ||
-      !CU_add_test(pSuite, "session_flow_control",
-                   test_nghttp2_session_flow_control) ||
+      !CU_add_test(pSuite, "session_defer_data",
+                   test_nghttp2_session_defer_data) ||
+      !CU_add_test(pSuite, "session_defer_data_with_read_length",
+                   test_nghttp2_session_defer_data_with_read_length) ||
       !CU_add_test(pSuite, "session_flow_control_data_recv",
                    test_nghttp2_session_flow_control_data_recv) ||
       !CU_add_test(pSuite, "session_flow_control_data_with_padding_recv",

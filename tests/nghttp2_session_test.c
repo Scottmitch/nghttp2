@@ -4411,6 +4411,8 @@ void test_nghttp2_session_defer_data_with_read_length(void)
   callbacks.read_length_callback = 0;
   CU_ASSERT(0 == nghttp2_session_resume_data(session, 1));
   item = nghttp2_session_get_ob_pq_top(session);
+  OB_DATA(item)->data_prd.read_callback =
+    fixed_length_data_source_read_callback;
   ud.block_count = 1;
   /* Reads 2 DATA chunks */
   CU_ASSERT(0 == nghttp2_session_send(session));
@@ -4428,6 +4430,8 @@ void test_nghttp2_session_defer_data_with_read_length(void)
   callbacks.read_length_callback = 0;
   CU_ASSERT(0 == nghttp2_session_resume_data(session, 1));
   item = nghttp2_session_get_ob_pq_top(session);
+  OB_DATA(item)->data_prd.read_callback =
+    fixed_length_data_source_read_callback;
   ud.block_count = 1;
   /* Reads 2 4KiB blocks */
   CU_ASSERT(0 == nghttp2_session_send(session));
