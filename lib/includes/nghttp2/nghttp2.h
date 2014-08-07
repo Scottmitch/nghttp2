@@ -649,8 +649,10 @@ typedef enum {
  * of data to send data to the remote peer.  The implementation of this
  * function must return a value in the following range:
  * [0, min(session window, stream window, settings remote max frame size)].
- * A return value of 0 will be equivalent to `nghttp2_data_source_read_callback`'s
- * return value of :enum:`NGHTTP2_ERR_DEFERRED`.
+ * A return value of 0 will be equivalent to the `nghttp2_data_source_read_callback`
+ * return value of :enum:`NGHTTP2_ERR_DEFERRED` for the immediate call. The
+ * difference is the event to underfed must be a window update
+ * (or event to increase available remote window space)
  *
  * This callback can be used to control the |length| in bytes
  * for which `nghttp2_data_source_read_callback()` is allowed to send to the
