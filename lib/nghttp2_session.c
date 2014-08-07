@@ -1340,7 +1340,7 @@ static size_t nghttp2_session_next_data_read(nghttp2_session *session,
   size_t window_size;
 
   DEBUGF(fprintf(stderr,
-                 "send: remote windowsize connection=%d, remote maxframsize=%lu"
+                 "send: remote windowsize connection=%d, remote maxframsize=%u, "
                  "stream(id %d)=%d\n",
                  session->remote_window_size,
                  session->remote_settings.max_frame_size,
@@ -1351,6 +1351,7 @@ static size_t nghttp2_session_next_data_read(nghttp2_session *session,
       window_size = session->callbacks.read_length_callback(session, stream->stream_id,
                       session->remote_window_size, stream->remote_window_size,
                       session->remote_settings.max_frame_size, session->user_data);
+      DEBUGF(fprintf(stderr, "send: read_length_callback=%lu\n", window_size));
       /* size_t should be unsigned, but just in-case this is a weird platform */
       window_size = nghttp2_max(window_size, 0);
   } else {
@@ -1362,12 +1363,9 @@ static size_t nghttp2_session_next_data_read(nghttp2_session *session,
   window_size = nghttp2_min(window_size, (size_t) nghttp2_max(0, session->remote_window_size));
   window_size = nghttp2_min(window_size, (size_t) nghttp2_max(0, stream->remote_window_size));
 
-  DEBUGF(fprintf(stderr, "send: available window=%d\n", window_size));
+  DEBUGF(fprintf(stderr, "send: available window=%lu\n", window_size));
 
-  if(window_size > 0) {
-    return window_size;
-  }
-  return 0;
+  return window_size;
 }
 
 /*

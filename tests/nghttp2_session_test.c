@@ -4377,7 +4377,7 @@ void test_nghttp2_session_defer_data_with_read_length(void)
   nghttp2_session_callbacks callbacks;
   my_user_data ud;
   nghttp2_data_provider data_prd;
-  nghttp2_outbound_item *item;
+  nghttp2_frame frame;
 
   memset(&callbacks, 0, sizeof(nghttp2_session_callbacks));
   callbacks.on_frame_send_callback = on_frame_send_callback;
@@ -4402,36 +4402,34 @@ void test_nghttp2_session_defer_data_with_read_length(void)
   CU_ASSERT(ud.data_source_length == NGHTTP2_DATA_PAYLOADLEN * 4);
 
   ud.block_count = 1;
-  nghttp2_submit_ping(session, NGHTTP2_FLAG_NONE, NULL);
+  CU_ASSERT(0 == nghttp2_submit_ping(session, NGHTTP2_FLAG_NONE, NULL));
   /* Sends PING */
   CU_ASSERT(0 == nghttp2_session_send(session));
   CU_ASSERT(NGHTTP2_PING == ud.sent_frame_type);
 
-  /* Resume deferred DATA - null callback */
-  callbacks.read_length_callback = 0;
-  CU_ASSERT(0 == nghttp2_session_resume_data(session, 1));
-  item = nghttp2_session_get_ob_pq_top(session);
-  OB_DATA(item)->data_prd.read_callback =
-    fixed_length_data_source_read_callback;
+  /* Resume deferred DATA */
+  session->callbacks.read_length_callback = 0;
+  nghttp2_frame_window_update_init(&frame.window_update, NGHTTP2_FLAG_NONE,
+                                    1, NGHTTP2_INITIAL_WINDOW_SIZE);
+  CU_ASSERT(0 == nghttp2_session_on_window_update_received(session, &frame));
   ud.block_count = 1;
   /* Reads 2 DATA chunks */
+  CU_ASSERT(1 == nghttp2_session_get_outbound_queue_size(session));
   CU_ASSERT(0 == nghttp2_session_send(session));
+  CU_ASSERT(0 == nghttp2_session_get_outbound_queue_size(session));
   CU_ASSERT(ud.data_source_length == NGHTTP2_DATA_PAYLOADLEN * 2);
 
   /* Deferred again */
-  callbacks.read_length_callback = defer_data_source_length_callback;
+  session->callbacks.read_length_callback = defer_data_source_length_callback;
   /* This is needed since 4KiB block is already read and waiting to be
      sent. No read_callback invocation. */
   ud.block_count = 1;
   CU_ASSERT(0 == nghttp2_session_send(session));
   CU_ASSERT(ud.data_source_length == NGHTTP2_DATA_PAYLOADLEN * 2);
 
-  /* Resume deferred DATA - null callback */
-  callbacks.read_length_callback = 0;
-  CU_ASSERT(0 == nghttp2_session_resume_data(session, 1));
-  item = nghttp2_session_get_ob_pq_top(session);
-  OB_DATA(item)->data_prd.read_callback =
-    fixed_length_data_source_read_callback;
+  /* Resume deferred DATA */
+  CU_ASSERT(0 == nghttp2_session_on_window_update_received(session, &frame));
+  session->callbacks.read_length_callback = 0;
   ud.block_count = 1;
   /* Reads 2 4KiB blocks */
   CU_ASSERT(0 == nghttp2_session_send(session));
