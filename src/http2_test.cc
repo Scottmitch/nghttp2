@@ -53,25 +53,6 @@ void check_nv(const Header& a, const nghttp2_nv *b)
 }
 } // namespace
 
-void test_http2_sort_nva(void)
-{
-  // Last 0 is stripped in MAKE_NV
-  const uint8_t concatval[] = { '4', 0x00, 0x00, '6', 0x00, '5', 0x00 };
-  nghttp2_nv nv[] = {MAKE_NV("alpha", "1"),
-                     MAKE_NV("charlie", "3"),
-                     MAKE_NV("bravo", "2"),
-                     MAKE_NV("delta", concatval)};
-  auto nvlen = sizeof(nv)/sizeof(nv[0]);
-  auto nva = http2::sort_nva(nv, nvlen);
-  CU_ASSERT(6 == nva.size());
-  check_nv({"alpha", "1"}, &nva[0]);
-  check_nv({"bravo", "2"}, &nva[1]);
-  check_nv({"charlie", "3"}, &nva[2]);
-  check_nv({"delta", "4"}, &nva[3]);
-  check_nv({"delta", "6"}, &nva[4]);
-  check_nv({"delta", "5"}, &nva[5]);
-}
-
 void test_http2_add_header(void)
 {
   auto nva = Headers();
@@ -118,14 +99,20 @@ void test_http2_check_http2_headers(void)
     { ":path", "3" },
     { ":scheme", "4" }
   };
-  CU_ASSERT(http2::check_http2_request_headers(nva4));
-  CU_ASSERT(!http2::check_http2_response_headers(nva4));
+  CU_ASSERT(http2::check_http2_request_pseudo_headers_without_sort(nva4));
+  CU_ASSERT(!http2::check_http2_response_pseudo_headers_without_sort(nva4));
 
   auto nva5 = Headers{
     { ":status", "1" }
   };
-  CU_ASSERT(!http2::check_http2_request_headers(nva5));
-  CU_ASSERT(http2::check_http2_response_headers(nva5));
+  CU_ASSERT(!http2::check_http2_request_pseudo_headers_without_sort(nva5));
+  CU_ASSERT(http2::check_http2_response_pseudo_headers_without_sort(nva5));
+
+  auto nva6 = Headers{
+    { "content-length", "1"},
+    { ":authority", "2" },
+  };
+  CU_ASSERT(!http2::check_http2_request_pseudo_headers_without_sort(nva6));
 }
 
 void test_http2_get_unique_header(void)

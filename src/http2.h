@@ -96,15 +96,15 @@ bool check_http2_allowed_header(const char *name);
 // contains such headers.
 bool check_http2_headers(const Headers& nva);
 
-// Calls check_http2_headers() and also checks that |nva| only
-// contains pseudo headers allowed in request.  Returns true if all
+// Checks that |nva| only contains pseudo headers allowed in request
+// and pseudo headers come before normal headers.  Returns true if all
 // checks passed.
-bool check_http2_request_headers(const Headers& nva);
+bool check_http2_request_pseudo_headers_without_sort(const Headers& nva);
 
-// Calls check_http2_headers() and also checks that |nva| only
-// contains pseudo headers allowed in response.  Returns true if all
+// Checks that |nva| only contains pseudo headers allowed in response
+// and pseudo headers come before normal headers.  Returns true if all
 // checks passed.
-bool check_http2_response_headers(const Headers& nva);
+bool check_http2_response_pseudo_headers_without_sort(const Headers& nva);
 
 bool name_less(const Headers::value_type& lhs, const Headers::value_type& rhs);
 
@@ -121,13 +121,6 @@ void add_header(Headers& nva,
                 const uint8_t *name, size_t namelen,
                 const uint8_t *value, size_t valuelen,
                 bool no_index);
-
-// Returns sorted |nva| with |nvlen| elements. The headers are sorted
-// by name only and not necessarily stable. In addition to the
-// sorting, this function splits values concatenated with NULL. The
-// ordering of the concatenated values are preserved. The element of
-// the returned vector refers to the memory pointed by |nva|.
-std::vector<nghttp2_nv> sort_nva(const nghttp2_nv *nva, size_t nvlen);
 
 // Returns the iterator to the entry in |nva| which has name |name|
 // and the |name| is uinque in the |nva|. If no such entry exist,

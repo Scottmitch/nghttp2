@@ -224,16 +224,17 @@ namespace {
 size_t HTTP1_IGN_HDLEN = sizeof(HTTP1_IGN_HD)/sizeof(HTTP1_IGN_HD[0]);
 } // namespace
 
-namespace {
-auto nv_name_less = [](const nghttp2_nv& lhs, const nghttp2_nv& rhs)
-{
-  return nghttp2_nv_compare_name(&lhs, &rhs) < 0;
-};
-} // namespace
-
 bool name_less(const Headers::value_type& lhs,
                const Headers::value_type& rhs)
 {
+  if(lhs.name.c_str()[0] == ':') {
+    if(rhs.name.c_str()[0] != ':') {
+      return true;
+    }
+  } else if(rhs.name.c_str()[0] == ':') {
+    return false;
+  }
+
   return lhs.name < rhs.name;
 }
 
@@ -254,16 +255,19 @@ bool check_pseudo_headers(const Headers& nva,
                           InputIterator allowed_first,
                           InputIterator allowed_last)
 {
+  bool expect_no_pseudo_header = false;
   // strict checking for pseudo headers.
   for(auto& hd : nva) {
     auto c = hd.name.c_str()[0];
 
-    if(c < ':') {
+    if(c != ':') {
+      expect_no_pseudo_header = true;
       continue;
     }
 
-    if(c > ':') {
-      break;
+    // Pseudo headers must come before normal headers
+    if(expect_no_pseudo_header) {
+      return false;
     }
 
     auto i = allowed_first;
@@ -283,22 +287,14 @@ bool check_pseudo_headers(const Headers& nva,
 }
 } // namespace
 
-bool check_http2_request_headers(const Headers& nva)
+bool check_http2_request_pseudo_headers_without_sort(const Headers& nva)
 {
-  if(!check_http2_headers(nva)) {
-    return false;
-  }
-
   return check_pseudo_headers(nva, REQUEST_PSEUDO_HD,
                               REQUEST_PSEUDO_HD + REQUEST_PSEUDO_HDLEN);
 }
 
-bool check_http2_response_headers(const Headers& nva)
+bool check_http2_response_pseudo_headers_without_sort(const Headers& nva)
 {
-  if(!check_http2_headers(nva)) {
-    return false;
-  }
-
   return check_pseudo_headers(nva, RESPONSE_PSEUDO_HD,
                               RESPONSE_PSEUDO_HD + RESPONSE_PSEUDO_HDLEN);
 }
@@ -309,37 +305,6 @@ void normalize_headers(Headers& nva)
     util::inp_strlower(kv.name);
   }
   std::stable_sort(std::begin(nva), std::end(nva), name_less);
-}
-
-std::vector<nghttp2_nv> sort_nva(const nghttp2_nv *nva, size_t nvlen)
-{
-  auto v = std::vector<nghttp2_nv>(&nva[0], &nva[nvlen]);
-  std::sort(std::begin(v), std::end(v), nv_name_less);
-  auto res = std::vector<nghttp2_nv>();
-  res.reserve(nvlen);
-  for(size_t i = 0; i < nvlen; ++i) {
-    if(v[i].valuelen == 0) {
-      res.push_back(v[i]);
-      continue;
-    }
-    auto j = v[i].value;
-    auto end = v[i].value + v[i].valuelen;
-    for(;;) {
-      // Skip 0 length value
-      j = std::find_if(j, end,
-                       [](uint8_t c)
-                       {
-                         return c != '\0';
-                       });
-      if(j == end) {
-        break;
-      }
-      auto l = std::find(j, end, '\0');
-      res.push_back({v[i].name, j, v[i].namelen, static_cast<size_t>(l - j)});
-      j = l;
-    }
-  }
-  return res;
 }
 
 Headers::value_type to_header(const uint8_t *name, size_t namelen,
@@ -513,12 +478,11 @@ void dump_nv(FILE *out, const char **nv)
 
 void dump_nv(FILE *out, const nghttp2_nv *nva, size_t nvlen)
 {
-  // |nva| may have NULL-concatenated header fields
-  auto v = sort_nva(nva, nvlen);
-  for(auto& nv : v) {
-    fwrite(nv.name, nv.namelen, 1, out);
+  auto end = nva + nvlen;
+  for(; nva != end; ++nva) {
+    fwrite(nva->name, nva->namelen, 1, out);
     fwrite(": ", 2, 1, out);
-    fwrite(nv.value, nv.valuelen, 1, out);
+    fwrite(nva->value, nva->valuelen, 1, out);
     fwrite("\n", 1, 1, out);
   }
   fwrite("\n", 1, 1, out);

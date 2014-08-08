@@ -887,7 +887,7 @@ int Http2Handler::submit_push_promise(Stream *stream,
 
   auto promised_stream = util::make_unique<Stream>(this, promised_stream_id);
 
-  append_nv(promised_stream.get(), http2::sort_nva(nva.data(), nva.size()));
+  append_nv(promised_stream.get(), nva);
   add_stream(promised_stream_id, std::move(promised_stream));
 
   return 0;
@@ -1255,9 +1255,14 @@ int hd_on_frame_recv_callback
     }
 
     if(frame->headers.cat == NGHTTP2_HCAT_REQUEST) {
+      if(!http2::check_http2_request_pseudo_headers_without_sort
+         (stream->headers)) {
+        hd->submit_rst_stream(stream, NGHTTP2_PROTOCOL_ERROR);
+        return 0;
+      }
 
       http2::normalize_headers(stream->headers);
-      if(!http2::check_http2_request_headers(stream->headers)) {
+      if(!http2::check_http2_headers(stream->headers)) {
         hd->submit_rst_stream(stream, NGHTTP2_PROTOCOL_ERROR);
         return 0;
       }
