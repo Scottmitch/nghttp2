@@ -33,4 +33,4 @@ before_script:
   - autoconf
   - ./configure --enable-werror
 script:
-  - make
+  - make check
